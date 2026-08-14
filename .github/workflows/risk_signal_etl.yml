@@ -1,7 +1,3 @@
-# Place this file at .github/workflows/risk_signal_etl.yml in your repo.
-# Runs the Risk Signal ETL daily and on demand. Add the secrets under
-# Settings > Secrets and variables > Actions in the GitHub repo.
-
 name: Risk Signal ETL
 
 on:
@@ -27,6 +23,6 @@ jobs:
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
-          ACLED_API_KEY: ${{ secrets.ACLED_API_KEY }}
           ACLED_EMAIL: ${{ secrets.ACLED_EMAIL }}
+          ACLED_PASSWORD: ${{ secrets.ACLED_PASSWORD }}
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
