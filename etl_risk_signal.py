@@ -287,7 +287,7 @@ def main() -> None:
     if os.environ.get("ACLED_EMAIL") and os.environ.get("ACLED_PASSWORD"):
         try:
             fetch_acled_events()
-        except requests.HTTPError as e:
+        except requests.exceptions.RequestException as e:
             log.warning("ACLED fetch failed, continuing without it: %s", e)
     else:
         log.info("ACLED_EMAIL / ACLED_PASSWORD not set — skipping conflict events "
@@ -298,7 +298,7 @@ def main() -> None:
         for iso3 in COUNTRIES:
             try:
                 generate_country_brief(iso3, period)
-            except requests.HTTPError as e:
+            except requests.exceptions.RequestException as e:
                 log.warning("AI brief for %s failed, continuing without it: %s", iso3, e)
                 break  # same account issue will hit every country — no point retrying 9x
 
