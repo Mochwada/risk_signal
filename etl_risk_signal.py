@@ -154,7 +154,9 @@ def get_acled_access_token() -> str:
         },
         timeout=30,
     )
-    resp.raise_for_status()  # token endpoint — logging the body here would print your credentials, so left as-is
+    _raise_with_body(resp)  # safe to log here: a failed token response describes
+                             # the error (e.g. invalid_grant), it doesn't echo
+                             # back the username/password that were submitted
     return resp.json()["access_token"]  # valid 24h; we just fetch a fresh one each run
 
 
