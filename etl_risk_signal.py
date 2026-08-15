@@ -185,7 +185,7 @@ def fetch_acled_events(days_back: int = 90) -> int:
             headers={"Authorization": f"Bearer {token}"},
             timeout=30,
         )
-        r.raise_for_status()
+        _raise_with_body(r)
         for e in r.json().get("data", []):
             rows.append(
                 {
