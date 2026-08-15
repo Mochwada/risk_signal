@@ -296,7 +296,11 @@ def main() -> None:
     if os.environ.get("ANTHROPIC_API_KEY"):
         period = date.today().strftime("%Y-%m")
         for iso3 in COUNTRIES:
-            generate_country_brief(iso3, period)
+            try:
+                generate_country_brief(iso3, period)
+            except requests.HTTPError as e:
+                log.warning("AI brief for %s failed, continuing without it: %s", iso3, e)
+                break  # same account issue will hit every country — no point retrying 9x
 
 
 if __name__ == "__main__":
