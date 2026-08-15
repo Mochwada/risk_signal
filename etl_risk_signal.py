@@ -285,7 +285,10 @@ def main() -> None:
     fetch_unhcr_displacement(current_year)
 
     if os.environ.get("ACLED_EMAIL") and os.environ.get("ACLED_PASSWORD"):
-        fetch_acled_events()
+        try:
+            fetch_acled_events()
+        except requests.HTTPError as e:
+            log.warning("ACLED fetch failed, continuing without it: %s", e)
     else:
         log.info("ACLED_EMAIL / ACLED_PASSWORD not set — skipping conflict events "
                   "(sign up free at https://acleddata.com)")
