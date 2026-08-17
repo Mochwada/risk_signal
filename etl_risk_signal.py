@@ -96,14 +96,24 @@ def fetch_unhcr_displacement(current_year: int) -> int:
     Pull population figures (refugees, asylum seekers, IDPs, stateless)
     for the tracked countries from UNHCR's open population API.
 
-    No API key required. Queries the current year plus the two before it,
-    not just the current year — UNHCR's annual figures are typically
-    published with a lag, so the current year alone often comes back
-    empty (exactly what happened on the first run: 0 rows). Querying a
-    small range is a cheap way to get whatever's actually published
-    without needing to know the exact cutoff, and it's strictly better
-    for a dashboard anyway — more years of trend data, not less.
+    UNHCR's response is "wide", not "long": each item is one (year,
+    country of origin, country of asylum) combination with a separate
+    numeric column per category — refugees, asylum_seekers, idps,
+    stateless, returned_refugees, returned_idps, ooc, oip — rather than
+    a generic population_type + count pair. Verified against UNHCR's own
+    published data dictionary (the `refugees` R package they maintain,
+    populationstatistics.github.io/refugees) after the first version of
+    this function silently wrote zeros for every row. Querying by `coa`
+    (country of asylum) returns one row per country the people hosted
+    there originally came from, so each category gets summed across all
+    of those origin-country rows to get one total per host country/year.
+
+    Queries the current year plus the two before it, not just the
+    current year — UNHCR's annual figures are typically published with
+    a lag, so the current year alone often comes back empty.
     """
+    CATEGORIES = ["refugees", "asylum_seekers", "returned_refugees",
+                  "idps", "returned_idps", "stateless", "ooc", "oip"]
     rows = []
     for iso3 in COUNTRIES:
         for year in (current_year, current_year - 1, current_year - 2):
@@ -112,20 +122,23 @@ def fetch_unhcr_displacement(current_year: int) -> int:
             r = requests.get(url, params=params, headers={"Accept": "application/json"}, timeout=30)
             _raise_with_body(r)
             items = r.json().get("items", [])
-            for row in items:
-                ptype = row.get("population_type") or row.get("ptype") or "unknown"
-                count = row.get("individuals")
-                if count is None:
-                    count = row.get("value", 0)
-                rows.append(
-                    {
-                        "country_iso3": iso3,
-                        "year": year,
-                        "population_type": ptype,
-                        "population_count": count,
-                        "source": "UNHCR",
-                    }
-                )
+            totals = {cat: 0 for cat in CATEGORIES}
+            for item in items:
+                for cat in CATEGORIES:
+                    val = item.get(cat)
+                    if val is not None:
+                        totals[cat] += val
+            for ptype, count in totals.items():
+                if count:  # skip categories that are genuinely zero for this country/year
+                    rows.append(
+                        {
+                            "country_iso3": iso3,
+                            "year": year,
+                            "population_type": ptype,
+                            "population_count": count,
+                            "source": "UNHCR",
+                        }
+                    )
     supabase_upsert("risk_displacement_stats", rows, "country_iso3,year,population_type")
     log.info("UNHCR: upserted %d displacement rows", len(rows))
     if not rows:
