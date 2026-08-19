@@ -126,8 +126,12 @@ def fetch_unhcr_displacement(current_year: int) -> int:
             for item in items:
                 for cat in CATEGORIES:
                     val = item.get(cat)
-                    if val is not None:
-                        totals[cat] += val
+                    if val in (None, ""):
+                        continue
+                    try:
+                        totals[cat] += int(float(val))  # UNHCR returns these as strings, not numbers
+                    except (TypeError, ValueError):
+                        log.warning("Unexpected value for %s in %s: %r — skipped", cat, iso3, val)
             for ptype, count in totals.items():
                 if count:  # skip categories that are genuinely zero for this country/year
                     rows.append(
